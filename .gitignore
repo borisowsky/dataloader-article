@@ -1,0 +1,11 @@
+# Dependencies
+/node_modules
+
+# Editors
+/.idea
+/.vscode
+
+# MISC
+.DS_Store
+
+*.log

@@ -1,0 +1,21 @@
+{
+  "name": "graphql-dataloader-tutorial",
+  "version": "1.0.0",
+  "main": "src/main.mjs",
+  "license": "MIT",
+  "engines": {
+    "node": ">=15.0.0"
+  },
+  "scripts": {
+    "start": "node .",
+    "dev": "nodemon ."
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.15",
+    "prettier": "^2.4.1"
+  },
+  "dependencies": {
+    "apollo-server": "^3.4.0",
+    "graphql": "^15.6.1"
+  }
+}
