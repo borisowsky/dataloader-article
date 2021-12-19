@@ -165,7 +165,7 @@ const authors = [{ id: 1, name: 'Kate Chopin' } /* ... */];
 const batchLoadAuthors = async (keys) => {
   console.log('It executes only once!');
 
-  // Imitate asynchronous API call
+  // Imitate an asynchronous API call
   return await setTimeout(
     200,
     keys.map((key) => authors.find((author) => author.id === key)),
