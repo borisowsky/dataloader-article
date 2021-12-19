@@ -2,7 +2,7 @@
 
 ## Intro
 
-If you are willing to understand how Data Loader works, you should understand how Nodejs works intentionally. At least, some basics. JavaScript is an asynchronous language, this means that its engine (V8) can run non-blocking (asynchronous) operations in "parallel" with synchronous tasks.
+If you are willing to understand how Data Loader works, you should understand how Node.js works intentionally. At least, some basics. JavaScript is an asynchronous language, this means that its engine (V8) can run non-blocking (asynchronous) operations in "parallel" with synchronous tasks.
 
 I assume that you already have an experience working with DataLoader, most likely with GraphQL, so you know why
 DataLoader is so powerful, but you also want to know how it works in Node.js.
