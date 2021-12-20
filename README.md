@@ -1,13 +1,12 @@
 # DataLoader – understanding how it works by building it from scratch.
 
 ## Intro
+	
+If you are willing to understand how Data Loader works, you should understand how Node.js works intentionally. Some of the basics at least. JavaScript is an asynchronous language, meaning that its engine (V8) can run non-blocking (asynchronous) operations simultaneously with synchronous tasks.
 
-If you are willing to understand how Data Loader works, you should understand how Node.js works intentionally. At least, some basics. JavaScript is an asynchronous language, this means that its engine (V8) can run non-blocking (asynchronous) operations in "parallel" with synchronous tasks.
+I assume that you already have some experience working with DataLoader, most likely with GraphQL, so you know why DataLoader is so powerful, but you also want to know how it works in Node.js.
 
-I assume that you already have an experience working with DataLoader, most likely with GraphQL, so you know why
-DataLoader is so powerful, but you also want to know how it works in Node.js.
-
-So I think, the best way to understand how it works is to build it from scratch.
+In my opinion, the best way to understand how it works is to build it from scratch.
 
 ## Usage
 
@@ -35,12 +34,12 @@ loader.load(4);
 Look how loaderFunction is called with all the keys (1, 2, 3, 4) _after_ all `loader.load` function calls. Now we have to figure out how to implement a DataLoader class step by step following these requirements:
 
 1. DataLoader instances have to receive an asynchronous loader function.
-2. It also has to have `load` method, it also should be asynchronous, so we can call it in parallel.
+2. It needs to have `load` method, it should also be asynchronous, so we can call it in parallel.
 3. Somehow execute loader function after all the `load` method calls.
 
 ## Implementing DataLoader from scratch
 
-As it's heavily inspired by [DataLoader](https://github.com/graphql/dataloader) by Meta (ex. Facebook), but it will have much less functionality (there will be no cache system, no error handling, etc.), let's call it `MiniDataLoader`.
+As it's heavily inspired by Meta's (ex. Facebook) [DataLoader](https://github.com/graphql/dataloader) - let's call it MiniDataLoader (it will have much less functionality (there will be no cache system, no error handling, etc.)).
 
 ```diff
 + class MiniDataLoader {
@@ -50,7 +49,7 @@ As it's heavily inspired by [DataLoader](https://github.com/graphql/dataloader) 
 + }
 ```
 
-The start is straightforward, we need to store the loader function inside DataLoader class, so later we can refer to it.
+The start is simple, we need to store the loader function inside DataLoader class, so we can refer to it later.
 
 ```diff
   class MiniDataLoader {
@@ -69,7 +68,7 @@ The start is straightforward, we need to store the loader function inside DataLo
   }
 ```
 
-The idea behind `load` method is to store an object with a key and resolve function values. The reason why we passing `resolve` function is to be able to resolve these promises outside of this method (e. g. `loader.load(1).then((result) => console.log('result for key 1:', result))`).
+The idea behind `load` method is to store an object with a key and resolve function values. The reason why we are passing `resolve` function is the ability to resolve these promises outside of this method (e. g. `loader.load(1).then((result) => console.log('result for key 1:', result))`).
 
 ```diff
   class MiniDataLoader {
@@ -93,7 +92,7 @@ The idea behind `load` method is to store an object with a key and resolve funct
 
 `dispatchQueue` method is a function that will be called after all the `load` statements during the Node.js server tick.
 
-So in order to dispatch `dispatchQueue` method _after_ the synchronous, we have to pass it as callback in `process.nextTick` function (which is Node.js API), and also, to make sure `dispatchQueue` executes _after_ Promise resolution process, we have to wrap it into `queueMicrotask` functions (which is also Node.js API). This is the key thing to make DataLoader work.
+In order to dispatch `dispatchQueue` method _after_ the synchronous, we have to pass it as callback in `process.nextTick` function (which is Node.js API), and also, to make sure `dispatchQueue` executes _after_ Promise resolution process, we have to wrap it into `queueMicrotask` functions (which is also Node.js API). This is the key thing to make DataLoader work.
 
 ```diff
   class MiniDataLoader {
@@ -198,7 +197,7 @@ curl -g \
 http://localhost:4000/graphql
 ```
 
-If we execute this query against a GraphQL server, we get all the nested data, and also, in our console, we can see the "It executes only once!" message from our "console.log" statement, which actually appears only once, and it means only that our `MiniDataLoader` is working as expected!
+If we execute this query against a GraphQL server, we get all the nested data, and also, in our console, we can see the "It executes only once!" message from our "console.log" statement, which actually appears only once, meaning that our `MiniDataLoader` is working as expected!
 
 ## Conclusion
 
