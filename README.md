@@ -2,7 +2,7 @@
 
 ## Intro
 	
-If you are willing to understand how Data Loader works, you should understand how Node.js works intentionally. Some of the basics at least. JavaScript is an asynchronous language, meaning that its engine (V8) can run non-blocking (asynchronous) operations simultaneously with synchronous tasks.
+If you are willing to understand how DataLoader works, you should understand how Node.js works intentionally. Some of the basics at least. JavaScript is an asynchronous language, meaning that its engine (V8) can run non-blocking (asynchronous) operations simultaneously with synchronous tasks.
 
 I assume that you already have some experience working with DataLoader, most likely with GraphQL, so you know why DataLoader is so powerful, but you also want to know how it works in Node.js.
 
@@ -10,7 +10,7 @@ In my opinion, the best way to understand how it works is to build it from scrat
 
 ## Usage
 
-The most common use case for DataLaoder is batching multiple queries/function calls in one single function call, for example:
+The most common use case for DataLoader is batching multiple queries/function calls in one single function call, for example:
 
 ```js
 const loaderFunction = async (keys) => {
