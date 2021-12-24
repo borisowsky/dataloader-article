@@ -1,7 +1,7 @@
 # DataLoader – understanding how it works by building it from scratch.
 
 ## Intro
-	
+
 If you are willing to understand how DataLoader works, you should understand how Node.js works intentionally. Some of the basics at least. JavaScript is an asynchronous language, meaning that its engine (V8) can run non-blocking (asynchronous) operations simultaneously with synchronous tasks.
 
 I assume that you already have some experience working with DataLoader, most likely with GraphQL, so you know why DataLoader is so powerful, but you also want to know how it works in Node.js.
@@ -14,12 +14,13 @@ The most common use case for DataLoader is batching multiple queries/function ca
 
 ```js
 const loaderFunction = async (keys) => {
-  // It took X seconds
-  return await fetch('/api', {
+  const result = await fetch('/api', {
     params: { ids: ids },
   });
 
   console.log('loaderFunction called with', keys);
+
+  return result;
 };
 
 const loader = new DataLoader(loaderFunction);
@@ -28,7 +29,7 @@ loader.load(1);
 loader.load(2);
 loader.load(3);
 loader.load(4);
-// Console, in X seconds: loaderFunction called with [1, 2, 3, 4]
+// In console: loaderFunction called with [1, 2, 3, 4]
 ```
 
 Look how loaderFunction is called with all the keys (1, 2, 3, 4) _after_ all `loader.load` function calls. Now we have to figure out how to implement a DataLoader class step by step following these requirements:
