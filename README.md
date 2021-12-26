@@ -1,4 +1,4 @@
-# DataLoader – understanding how it works by building it from scratch.
+# DataLoader – understanding how it works by building it from scratch
 
 ## Intro
 
