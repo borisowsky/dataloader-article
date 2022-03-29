@@ -38,7 +38,7 @@ Look how loaderFunction is called with all the keys (1, 2, 3, 4) _after_ all `lo
 2. It needs to have `load` method, it should also be asynchronous, so we can call it in parallel.
 3. Somehow execute loader function after all the `load` method calls.
 
-## Implementing DataLoader from scratch
+## Implementing
 
 As it's heavily inspired by Meta's (ex. Facebook) [DataLoader](https://github.com/graphql/dataloader) - let's call it MiniDataLoader (it will have much less functionality (there will be no cache system, no error handling, etc.)).
 
