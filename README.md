@@ -198,8 +198,8 @@ curl -g \
 http://localhost:4000/graphql
 ```
 
-If we execute this query against a GraphQL server, we get all the nested data, and also, in our console, we can see the "It executes only once!" message from our "console.log" statement, which actually appears only once, meaning that our `MiniDataLoader` is working as expected!
+If we execute this query against the GraphQL server, we get all nested data, and also, in our console, we can see the "It executes only once!" message from our "console.log" statement, which actually appears only once, meaning that our `MiniDataLoader` is working as expected!
 
 ## Conclusion
 
-At first glance, DataLoader might look like magic, but eventually, it just uses the basic principle of Node.js runtime – Event loop. The key thing is to tell Node.js how to execute the loader function once after all the `load` calls happen, by wrapping it into `queueMicrotask` and `process.nextTick` functions.
+At first glance, DataLoader might look like magic, but eventually, it just uses the basic principle of Node.js runtime – Event loop. The key thing is to tell Node.js how to execute the loader function once after all the `load` calls happen, by managing asynchronous flow with `queueMicrotask` and `process.nextTick` built-in functions.
