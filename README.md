@@ -105,12 +105,10 @@ To achive that `dispatchQueue` function should be executed _after_ all the `load
     resolve: (value: V) => void;
   };
 
-  class MiniDataLoader {
-    queue = [];
+  export class MiniDataLoader<K, V> {
+    constructor(public loader: (keys: K[]) => Promise<V[]>) {}
 
-    constructor(loader) {
-      this.loader = loader;
-    }
+    queue: QueueItem<K, V>[] = [];
 
 -   dispatchQueue = () => {}
 +   dispatchQueue = () => {
