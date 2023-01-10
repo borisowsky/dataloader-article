@@ -13,55 +13,56 @@ In my opinion, the best way to understand how it works is to build it from scrat
 The most common use case for DataLoader is batching multiple queries/function calls in one single function call, for example:
 
 ```js
-const loaderFunction = async (keys) => {
+const loaderFn = async (keys) => {
   const result = await fetch('/api', {
     params: { ids: ids },
   });
 
-  console.log('loaderFunction called with', keys);
+  console.log('loaderFn called with', keys);
 
   return result;
 };
 
-const loader = new DataLoader(loaderFunction);
+const loader = new DataLoader(loaderFn);
 
 loader.load(1);
 loader.load(2);
 loader.load(3);
 loader.load(4);
-// In console: loaderFunction called with [1, 2, 3, 4]
+// In console: loaderFn called with [1, 2, 3, 4]
 ```
 
-Look how loaderFunction is called with all the keys (1, 2, 3, 4) _after_ all `loader.load` function calls. Now we have to figure out how to implement a DataLoader class step by step following these requirements:
+Look how `loaderFn` is called with all the keys (1, 2, 3, 4) _after_ all `loader.load` function calls. Now we have to figure out how to implement a DataLoader class step by step following these requirements:
 
 1. DataLoader instances have to receive an asynchronous loader function.
-2. It needs to have `load` method, it should also be asynchronous, so we can call it in parallel.
-3. Somehow execute loader function after all the `load` method calls.
+2. It needs to have `load` method. It should also be asynchronous, so we can call it in parallel.
+3. Execute loader function _after_ all the `load` method calls.
 
 ## Implementing
 
 As it's heavily inspired by Meta's (ex. Facebook) [DataLoader](https://github.com/graphql/dataloader) - let's call it MiniDataLoader (it will have much less functionality (there will be no cache system, no error handling, etc.)).
 
 ```diff
-+ class MiniDataLoader {
-+   constructor(loader) {
-+     this.loader = loader;
-+   }
++ class MiniDataLoader<K, V> {
++   constructor(public loader: (keys: K[]) => Promise<V[]>) {}
 + }
 ```
 
 The start is simple, we need to store the loader function inside DataLoader class, so we can refer to it later.
 
 ```diff
-  class MiniDataLoader {
-+   queue = [];
++ type QueueItem<K, V> = {
++   key: K;
++   resolve: (value: V) => void;
++ };
 
-    constructor(loader) {
-      this.loader = loader;
-    }
+  class MiniDataLoader<K, V> {
+    constructor(public loader: (keys: K[]) => Promise<V[]>) {}
 
-+   load = (key) => {
-+     return new Promise((resolve) => {
++   queue: QueueItem<K, V>[] = [];
+
++   load = (key: K) => {
++     return new Promise<V>((resolve) => {
 +       this.queue.push({ key, resolve });
 +       // TODO: Call this.loader this all the keys
 +     });
@@ -72,17 +73,20 @@ The start is simple, we need to store the loader function inside DataLoader clas
 The idea behind `load` method is to store an object with a key and resolve function values. The reason why we are passing `resolve` function is the ability to resolve these promises outside of this method (e. g. `loader.load(1).then((result) => console.log('result for key 1:', result))`).
 
 ```diff
-  class MiniDataLoader {
-    queue = [];
+  type QueueItem<K, V> = {
+    key: K;
+    resolve: (value: V) => void;
+  };
 
-    constructor(loader) {
-      this.loader = loader;
-    }
+  export class MiniDataLoader<K, V> {
+    constructor(public loader: (keys: K[]) => Promise<V[]>) {}
+
+    queue: QueueItem<K, V>[] = [];
 
 +   dispatchQueue = () => {}
 
-    load = (key) => {
-      return new Promise((resolve) => {
+    load = (key: K) => {
+      return new Promise<V>((resolve) => {
         this.queue.push({ key, resolve });
 -       // TODO: Call this.loader this all the keys
 +       queueMicrotask(() => process.nextTick(this.dispatchQueue));
@@ -91,11 +95,16 @@ The idea behind `load` method is to store an object with a key and resolve funct
   }
 ```
 
-`dispatchQueue` method is a function that will be called after all the `load` statements during the Node.js server tick.
+`dispatchQueue` method is a function that we need to call after all the `load` statements.
 
-In order to dispatch `dispatchQueue` method _after_ the synchronous, we have to pass it as callback in `process.nextTick` function (which is Node.js API), and also, to make sure `dispatchQueue` executes _after_ Promise resolution process, we have to wrap it into `queueMicrotask` functions (which is also Node.js API). This is the key thing to make DataLoader work.
+To achive that `dispatchQueue` function should be executed _after_ all the `load` calls, in the server's next tick. So here comes the `process.nextTick` API. It is a core Node.js API that allows its function argument to be called synchronously in the next frame of execution (aka next tick). But we also want to make sure that `dispatchQueue` executes _after_ Promise resolution process, or simply said, in the end of all asynchornous operations, so to do that we have to pass `dispatchQueue` into `queueMicrotask` (or similar API `setImmediate`) function.
 
 ```diff
+  type QueueItem<K, V> = {
+    key: K;
+    resolve: (value: V) => void;
+  };
+
   class MiniDataLoader {
     queue = [];
 
@@ -117,22 +126,20 @@ In order to dispatch `dispatchQueue` method _after_ the synchronous, we have to 
 +     }
 +   }
 
-    load = (key) => {
-      return new Promise((resolve) => {
+    load = (key: K) => {
+      return new Promise<V>((resolve) => {
         this.queue.push({ key, resolve });
         queueMicrotask(() => process.nextTick(this.dispatchQueue));
       });
-    }
+    };
   }
 ```
 
-As you may guess, `dispatchQueue` will be called as many times as you call the `load` method on a loader. But because of the "trick" with calling them in the next frame of execution, our `queue` will be valid at the first `dispatchQueue` call.
-
-That being said, in order to call our `loader` function just once, we have to clear the `queue` after the first `dispatchQueue` call and make sure we resolve the promises queue only when our `queue` isn't empty.
+Initially, `dispatchQueue` will be called as many times as `load` function, but as we have control of _when_ its executed, we can simply restrict if from being called more than once in the currect frame by clearing the `queue` after the first call as we don't need it anymore.
 
 ## Real example
 
-Let's test it by writing some simple GraphQL server with `N+1` (it appears when you try to load the `Author` node on each `Book` item) problem and try to solve it using our MiniDataLoader.
+Let's test it by writing some GraphQL server with `N+1` problem in mind (it appears when you try to load the `Author` node on each `Book` item) and solve it with the `MiniDataLoader`.
 
 ```js
 // Node.js ^15.0.0
@@ -159,25 +166,38 @@ const typeDefs = gql`
   }
 `;
 
-const books = [{ id: 1, title: 'The Awakening', authorId: 1 } /* ... */];
-const authors = [{ id: 1, name: 'Kate Chopin' } /* ... */];
+interface Book {
+  id: number;
+  title: string;
+  authorId: number;
+}
 
-const batchLoadAuthors = async (keys) => {
-  console.log('It executes only once!');
+interface Author {
+  id: number;
+  name: string;
+}
 
-  // Imitate an asynchronous API call
-  return await setTimeout(
-    200,
-    keys.map((key) => authors.find((author) => author.id === key)),
-  );
+const books: Book[] = [
+  { id: 1, title: 'The Awakening', authorId: 1 } /* ... */,
+];
+
+const authors: Author[] = [{ id: 1, name: 'Kate Chopin' } /* ... */];
+
+const batchLoadAuthors = async (keys: number[]) => {
+  // SELECT * FROM authors WHERE id IN (keys)
+  const result = keys.map((key) => authors.find((author) => author.id === key));
+
+  return await setTimeout(200, result);
 };
 
 const authorsLoader = new MiniDataLoader(batchLoadAuthors);
 
 const resolvers = {
   Book: {
-    author: (root) => {
-      return authorsLoader.load(root.authorId);
+    author: async (root: Book) => {
+      const author = await authorsLoader.load(root.authorId);
+
+      return author;
     },
   },
   Query: {

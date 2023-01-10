@@ -1,9 +1,12 @@
-export class MiniDataLoader {
-  queue = [];
+type QueueItem<K, V> = {
+  key: K;
+  resolve: (value: V) => void;
+};
 
-  constructor(loader) {
-    this.loader = loader;
-  }
+export class MiniDataLoader<K, V> {
+  constructor(public loader: (keys: K[]) => Promise<V[]>) {}
+
+  queue: QueueItem<K, V>[] = [];
 
   dispatchQueue = () => {
     const currentQueue = [...this.queue];
@@ -18,8 +21,8 @@ export class MiniDataLoader {
     }
   };
 
-  load = (key) => {
-    return new Promise((resolve) => {
+  load = (key: K) => {
+    return new Promise<V>((resolve) => {
       this.queue.push({ key, resolve });
       queueMicrotask(() => process.nextTick(this.dispatchQueue));
     });

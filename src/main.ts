@@ -1,7 +1,7 @@
 import { setTimeout } from 'timers/promises';
 import { ApolloServer, gql } from 'apollo-server';
 
-import { MiniDataLoader } from './dataloader.mjs';
+import { MiniDataLoader } from './dataloader';
 
 const typeDefs = gql`
   type Author {
@@ -21,7 +21,18 @@ const typeDefs = gql`
   }
 `;
 
-const books = [
+interface Book {
+  id: number;
+  title: string;
+  authorId: number;
+}
+
+interface Author {
+  id: number;
+  name: string;
+}
+
+const books: Book[] = [
   {
     id: 1,
     title: 'The Awakening',
@@ -39,7 +50,7 @@ const books = [
   },
 ];
 
-const authors = [
+const authors: Author[] = [
   {
     id: 1,
     name: 'Stephen King',
@@ -58,19 +69,21 @@ const authors = [
   },
 ];
 
-const batchLoadAuthors = async (keys) => {
-  return await setTimeout(
-    200,
-    keys.map((key) => authors.find((author) => author.id === key)),
-  );
+const batchLoadAuthors = async (keys: number[]) => {
+  // SELECT * FROM authors WHERE id IN (keys)
+  const result = keys.map((key) => authors.find((author) => author.id === key));
+
+  return await setTimeout(200, result);
 };
 
 const authorsLoader = new MiniDataLoader(batchLoadAuthors);
 
 const resolvers = {
   Book: {
-    author: (root) => {
-      return authorsLoader.load(root.authorId);
+    author: async (root: Book) => {
+      const author = await authorsLoader.load(root.authorId);
+
+      return author;
     },
   },
   Query: {
